@@ -1,0 +1,344 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyNivaf+gzpkPjpuJsteulUC",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/AluminumShark/2024_Deep_Learning_with_Pytorch/blob/main/01_MNIST_ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Import Modules\n",
+        "\n",
+        "import torch\n",
+        "import torch.nn as nn\n",
+        "import torchvision\n",
+        "import torchvision.transforms as transforms\n",
+        "from torchvision.datasets import MNIST\n",
+        "from torch.utils.data import DataLoader\n",
+        "import numpy as np\n",
+        "torch.manual_seed(681520)"
+      ],
+      "metadata": {
+        "id": "UGWrsUFK1R9G",
+        "outputId": "e4336c76-0238-422f-efc4-0af670593720",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 1,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "<torch._C.Generator at 0x7b5c56ccd110>"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 1
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n",
+        "EPOCHS = 20\n",
+        "BATCH_SIZE = 128\n",
+        "lr = 0.001"
+      ],
+      "metadata": {
+        "id": "XKprdjUy2g-h"
+      },
+      "execution_count": 2,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Load and Normalize Datasets\n",
+        "\n",
+        "trainset = MNIST(root='./data', train=True, transform=transforms.ToTensor(), download=True)\n",
+        "train_loader = DataLoader(dataset=trainset, batch_size=len(trainset), shuffle=True)\n",
+        "\n",
+        "data = next(iter(train_loader))\n",
+        "\n",
+        "mean = data[0].mean()\n",
+        "std = data[0].std()\n",
+        "\n",
+        "transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean, std)])\n",
+        "\n",
+        "trainset = MNIST(root='./data', train=True, transform=transform, download=True)\n",
+        "testset = MNIST(root='./data', train=True, transform=transform, download=True)"
+      ],
+      "metadata": {
+        "id": "GX3OFZ5w21Yq",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "a0427c70-b8b5-4ab7-be1f-5837cf981688"
+      },
+      "execution_count": 3,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Downloading http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz\n",
+            "Failed to download (trying next):\n",
+            "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1007)>\n",
+            "\n",
+            "Downloading https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz\n",
+            "Downloading https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz to ./data/MNIST/raw/train-images-idx3-ubyte.gz\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "100%|██████████| 9.91M/9.91M [00:00<00:00, 39.7MB/s]\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Extracting ./data/MNIST/raw/train-images-idx3-ubyte.gz to ./data/MNIST/raw\n",
+            "\n",
+            "Downloading http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz\n",
+            "Failed to download (trying next):\n",
+            "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1007)>\n",
+            "\n",
+            "Downloading https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz\n",
+            "Downloading https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz to ./data/MNIST/raw/train-labels-idx1-ubyte.gz\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "100%|██████████| 28.9k/28.9k [00:00<00:00, 1.26MB/s]"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Extracting ./data/MNIST/raw/train-labels-idx1-ubyte.gz to ./data/MNIST/raw\n",
+            "\n",
+            "Downloading http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Failed to download (trying next):\n",
+            "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1007)>\n",
+            "\n",
+            "Downloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz\n",
+            "Downloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz to ./data/MNIST/raw/t10k-images-idx3-ubyte.gz\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "100%|██████████| 1.65M/1.65M [00:00<00:00, 8.45MB/s]\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Extracting ./data/MNIST/raw/t10k-images-idx3-ubyte.gz to ./data/MNIST/raw\n",
+            "\n",
+            "Downloading http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz\n",
+            "Failed to download (trying next):\n",
+            "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1007)>\n",
+            "\n",
+            "Downloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz\n",
+            "Downloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "100%|██████████| 4.54k/4.54k [00:00<00:00, 7.90MB/s]\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Creat a Sequential Model\n",
+        "\n",
+        "model = nn.Sequential(\n",
+        "    nn.Flatten(),\n",
+        "\n",
+        "    nn.Linear(28*28, 25),\n",
+        "    nn.BatchNorm1d(25),\n",
+        "    nn.ReLU(),\n",
+        "\n",
+        "    nn.Linear(25, 10),\n",
+        "\n",
+        ")\n",
+        "\n",
+        "for module in model.modules():\n",
+        "    if isinstance(module, nn.Linear):\n",
+        "        nn.init.kaiming_uniform_(module.weight, nonlinearity='relu')\n",
+        "        nn.init.constant_(module.bias, 0)"
+      ],
+      "metadata": {
+        "id": "9kvWgWws6U7-"
+      },
+      "execution_count": 8,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "optimizer = torch.optim.Adam(model.parameters(), lr)\n",
+        "loss_fn = nn.CrossEntropyLoss()\n",
+        "\n",
+        "model.to(device)\n",
+        "\n",
+        "train_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True)\n",
+        "test_loader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=True)\n",
+        "\n",
+        "\n",
+        "for i in range(EPOCHS):\n",
+        "  model.train()\n",
+        "  train_loss = 0.0\n",
+        "  train_acc = 0\n",
+        "  train_batches = 0\n",
+        "\n",
+        "  # Start Training\n",
+        "\n",
+        "  for inputs, targets in train_loader:\n",
+        "    one_hot_targets = nn.functional.one_hot(targets, num_classes=10).float()\n",
+        "    inputs, targets, one_hot_targets = inputs.to(device), targets.to(device), one_hot_targets.to(device)\n",
+        "\n",
+        "    optimizer.zero_grad()\n",
+        "\n",
+        "    # Forward pass\n",
+        "    outputs = model(inputs)\n",
+        "    loss = loss_fn(outputs, one_hot_targets)\n",
+        "\n",
+        "    # Caculate Accuracy\n",
+        "    _, predicted = torch.max(outputs.data, 1)\n",
+        "    train_acc += (predicted == targets).sum().item()\n",
+        "    train_batches += 1\n",
+        "    train_loss += loss.item()\n",
+        "\n",
+        "    # Backward pass and Update\n",
+        "    loss.backward()\n",
+        "    optimizer.step()\n",
+        "\n",
+        "  train_loss /= train_batches\n",
+        "  train_acc /= train_batches*BATCH_SIZE\n",
+        "\n",
+        "  # Evaluate Model\n",
+        "\n",
+        "  model.eval()\n",
+        "  test_loss = 0.0\n",
+        "  test_acc = 0\n",
+        "  test_batches = 0\n",
+        "\n",
+        "  for inputs, targets in test_loader:\n",
+        "    one_hot_targets = nn.functional.one_hot(targets, num_classes=10).float()\n",
+        "    inputs, targets, one_hot_targets = inputs.to(device), targets.to(device), one_hot_targets.to(device)\n",
+        "\n",
+        "    # Forward pass\n",
+        "    outputs = model(inputs)\n",
+        "    loss = loss_fn(outputs, one_hot_targets)\n",
+        "\n",
+        "    # Calculate Accuracy\n",
+        "    _, predicted = torch.max(outputs.data, 1)\n",
+        "    test_acc += (predicted == targets).sum().item()\n",
+        "    test_batches += 1\n",
+        "    test_loss += loss.item()\n",
+        "\n",
+        "  test_loss /= test_batches\n",
+        "  test_acc /= test_batches*BATCH_SIZE\n",
+        "\n",
+        "  print(f'Epoch {i+1}/{EPOCHS} loss: {train_loss:.4f} - acc: {train_acc:0.4f} - val_loss: {test_loss:.4f} - val_acc: {test_acc:0.4f}')"
+      ],
+      "metadata": {
+        "id": "ukS9nur1F1sw",
+        "outputId": "e6dea186-2ca1-467a-995d-b3152a582ef6",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 9,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Epoch 1/20 loss: 0.5947 - acc: 0.8505 - val_loss: 0.2918 - val_acc: 0.9251\n",
+            "Epoch 2/20 loss: 0.2592 - acc: 0.9299 - val_loss: 0.2108 - val_acc: 0.9423\n",
+            "Epoch 3/20 loss: 0.2053 - acc: 0.9421 - val_loss: 0.1715 - val_acc: 0.9524\n",
+            "Epoch 4/20 loss: 0.1769 - acc: 0.9501 - val_loss: 0.1481 - val_acc: 0.9588\n",
+            "Epoch 5/20 loss: 0.1572 - acc: 0.9552 - val_loss: 0.1311 - val_acc: 0.9640\n",
+            "Epoch 6/20 loss: 0.1440 - acc: 0.9586 - val_loss: 0.1208 - val_acc: 0.9663\n",
+            "Epoch 7/20 loss: 0.1335 - acc: 0.9612 - val_loss: 0.1092 - val_acc: 0.9698\n",
+            "Epoch 8/20 loss: 0.1246 - acc: 0.9633 - val_loss: 0.1014 - val_acc: 0.9717\n",
+            "Epoch 9/20 loss: 0.1167 - acc: 0.9660 - val_loss: 0.0957 - val_acc: 0.9736\n",
+            "Epoch 10/20 loss: 0.1108 - acc: 0.9669 - val_loss: 0.0902 - val_acc: 0.9739\n",
+            "Epoch 11/20 loss: 0.1054 - acc: 0.9688 - val_loss: 0.0867 - val_acc: 0.9753\n",
+            "Epoch 12/20 loss: 0.1002 - acc: 0.9700 - val_loss: 0.0795 - val_acc: 0.9772\n",
+            "Epoch 13/20 loss: 0.0960 - acc: 0.9707 - val_loss: 0.0755 - val_acc: 0.9786\n",
+            "Epoch 14/20 loss: 0.0922 - acc: 0.9719 - val_loss: 0.0734 - val_acc: 0.9782\n",
+            "Epoch 15/20 loss: 0.0887 - acc: 0.9729 - val_loss: 0.0710 - val_acc: 0.9793\n",
+            "Epoch 16/20 loss: 0.0854 - acc: 0.9735 - val_loss: 0.0680 - val_acc: 0.9801\n",
+            "Epoch 17/20 loss: 0.0830 - acc: 0.9744 - val_loss: 0.0634 - val_acc: 0.9818\n",
+            "Epoch 18/20 loss: 0.0792 - acc: 0.9752 - val_loss: 0.0632 - val_acc: 0.9818\n",
+            "Epoch 19/20 loss: 0.0776 - acc: 0.9759 - val_loss: 0.0614 - val_acc: 0.9819\n",
+            "Epoch 20/20 loss: 0.0744 - acc: 0.9764 - val_loss: 0.0562 - val_acc: 0.9834\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
